@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Oswald:wght@500;700&family=Pacifico&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Poppins:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #FF6B35;
+  --accent-color: #FFC107;
+  --bg-color: #FFFFFF;
+  --card-bg-color: #F9F9F9;
+  --border-radius: 8px;
+}
+
+body {
+  color: #1a1a1a;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
