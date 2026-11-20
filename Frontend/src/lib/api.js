@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// On Vercel: NEXT_PUBLIC_API_URL is set to "" (empty string) so all requests
+// go to the same origin, then the top-level rewrite forwards /api/* to the
+// backend service. Locally it falls back to http://localhost:5000.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const api = axios.create({
