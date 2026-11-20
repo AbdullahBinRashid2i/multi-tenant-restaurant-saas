@@ -3,12 +3,13 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const seedSuperAdmin = require('../scripts/seed');
 
 /**
  * Helper: generate a signed JWT for a user
  */
 const signToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'secret123', {
     expiresIn: '7d',
   });
 };
@@ -61,7 +62,7 @@ router.post('/register', async (req, res, next) => {
 });
 
 // ─── POST /api/auth/login ──────────────────────────────────────────────────
-// Public – authenticate any role (SUPERADMIN, RESTAURANT, RIDER)
+// Public – authenticate any role (SUPERADMIN, RESTAURANT, RIDER, CUSTOMER)
 router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -70,11 +71,28 @@ router.post('/login', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    // Explicitly select password (it has select: false in schema)
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const cleanEmail = email.toLowerCase().trim();
+    const superAdminEmail = (process.env.SUPERADMIN_EMAIL || 'superadmin@platform.com').toLowerCase().trim();
 
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    // If logging in as the Super Admin and user is not yet in MongoDB Atlas, auto-seed now!
+    if (cleanEmail === superAdminEmail) {
+      const existingSuperAdmin = await User.findOne({ email: superAdminEmail });
+      if (!existingSuperAdmin) {
+        console.log('⚡ Super Admin not found on login attempt, auto-seeding now...');
+        await seedSuperAdmin();
+      }
+    }
+
+    // Explicitly select password (it has select: false in schema)
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials. Incorrect password.' });
     }
 
     if (!user.isActive) {

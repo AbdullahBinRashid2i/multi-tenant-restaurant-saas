@@ -6,7 +6,7 @@
  *
  * Usage:
  *   node scripts/seed.js        (run standalone)
- *   OR called automatically from server.js on startup
+ *   OR called automatically from server.js / auth.js on startup
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -20,16 +20,16 @@ const seedSuperAdmin = async () => {
       await connectDB();
     }
 
-    // Check if any SUPERADMIN already exists
-    const existingSuperAdmin = await User.findOne({ role: 'SUPERADMIN' });
+    const email = (process.env.SUPERADMIN_EMAIL || 'superadmin@platform.com').toLowerCase();
+    const password = process.env.SUPERADMIN_PASSWORD || 'admin123';
+
+    // Check if this specific SUPERADMIN email already exists
+    const existingSuperAdmin = await User.findOne({ email });
 
     if (existingSuperAdmin) {
       console.log('✅ Super Admin already exists:', existingSuperAdmin.email);
-      return;
+      return existingSuperAdmin;
     }
-
-    const email = process.env.SUPERADMIN_EMAIL || 'superadmin@platform.com';
-    const password = process.env.SUPERADMIN_PASSWORD || 'admin123';
 
     // Create the default Super Admin
     const superAdmin = await User.create({
@@ -44,6 +44,8 @@ const seedSuperAdmin = async () => {
     console.log('   Email   :', superAdmin.email);
     console.log('   Password:', password);
     console.log('   Role    :', superAdmin.role);
+
+    return superAdmin;
   } catch (error) {
     console.error('❌ Seed error:', error.message);
   }

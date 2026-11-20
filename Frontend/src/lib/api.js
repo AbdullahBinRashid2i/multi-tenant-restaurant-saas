@@ -2,23 +2,31 @@ import axios from 'axios';
 
 // ── URL resolution strategy ───────────────────────────────────────────────────
 //
-// Local dev  : set NEXT_PUBLIC_API_URL=http://localhost:5000 in .env.local
-//              → API calls go to   http://localhost:5000/api/...
-//              → Image URLs become http://localhost:5000/uploads/...
-//
-// Vercel     : set NEXT_PUBLIC_API_URL="" (empty string) in project env vars
-//              → API_BASE_URL becomes "" so the axios baseURL is "/api"
-//              → All /api/* browser requests hit the same Vercel domain
-//              → The top-level rewrite in vercel.json routes them to the backend service
-//              → Image URLs become /uploads/... (also routed to backend via rewrite)
-//
-// IMPORTANT: We use ?? (nullish coalescing) not || so that an intentional
-// empty string is preserved. '' || fallback = fallback (wrong); '' ?? fallback = '' (correct).
+// 1. Explicit env var: If NEXT_PUBLIC_API_URL is set (and not empty), use it.
+// 2. In browser on localhost/127.0.0.1: Default to 'http://localhost:5000'.
+// 3. In browser on production (e.g. Vercel *.vercel.app or custom domain):
+//    Default to '' (empty string) so all requests are relative (/api/...) and
+//    routed automatically by Vercel's top-level rewrite to the backend service.
+// 4. Server-side (SSR): Fallback to BACKEND_URL (service binding) or localhost.
 // ─────────────────────────────────────────────────────────────────────────────
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const isLocal =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.endsWith('.local');
+    return isLocal ? 'http://localhost:5000' : '';
+  }
+  return process.env.BACKEND_URL || 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: API_BASE_URL ? `${API_BASE_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
