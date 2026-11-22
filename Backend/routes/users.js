@@ -140,4 +140,46 @@ router.patch('/:id/toggle', protect, authorize('SUPERADMIN', 'RESTAURANT'), asyn
   }
 });
 
+// DELETE /api/users/:id – SUPERADMIN/RESTAURANT: permanently delete a user account
+router.delete('/:id', protect, authorize('SUPERADMIN', 'RESTAURANT'), async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Prevent deleting own logged-in account
+    if (req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
+    }
+
+    // Prevent deleting Super Admin
+    if (user.role === 'SUPERADMIN') {
+      return res.status(403).json({ success: false, message: 'Cannot delete a Super Admin account' });
+    }
+
+    // Restaurant admin can only delete their own riders
+    if (req.user.role === 'RESTAURANT') {
+      if (
+        user.role !== 'RIDER' ||
+        user.restaurantId?.toString() !== req.user.restaurantId?.toString()
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'Forbidden – you can only delete riders from your own restaurant',
+        });
+      }
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: `${user.role} account deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

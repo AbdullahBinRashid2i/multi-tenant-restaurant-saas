@@ -21,6 +21,7 @@ import {
   CreditCard,
   Search,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import api from '../../../../../lib/api';
 
@@ -148,6 +149,37 @@ export default function RestaurantDetailPage() {
       setError(err.response?.data?.message || 'Failed to create admin');
     } finally {
       setAdminLoading(false);
+    }
+  };
+
+  // Toggle Admin active status
+  const handleToggleAdmin = async (adminId) => {
+    setError('');
+    setSuccess('');
+    try {
+      const res = await api.patch(`/users/${adminId}/toggle`);
+      setAdmins((prev) =>
+        prev.map((a) => (a._id === adminId ? { ...a, isActive: res.data.data.isActive } : a))
+      );
+      setSuccess('Admin account status updated successfully');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update admin status');
+    }
+  };
+
+  // Delete Admin user
+  const handleDeleteAdmin = async (adminId, adminName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete admin "${adminName}"?`)) {
+      return;
+    }
+    setError('');
+    setSuccess('');
+    try {
+      await api.delete(`/users/${adminId}`);
+      setAdmins((prev) => prev.filter((a) => a._id !== adminId));
+      setSuccess(`Admin account "${adminName}" deleted successfully`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete admin account');
     }
   };
 
@@ -1122,23 +1154,45 @@ export default function RestaurantDetailPage() {
                 {admins.map((adm) => (
                   <div
                     key={adm._id}
-                    className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between"
+                    className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3"
                   >
                     <div>
-                      <p className="font-semibold text-xs text-white">{adm.name}</p>
-                      <p className="text-[11px] text-slate-400 font-mono">{adm.email}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-xs text-white">{adm.name}</p>
+                        <span
+                          className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${
+                            adm.isActive
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}
+                        >
+                          {adm.isActive ? 'Active' : 'Deactivated'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">{adm.email}</p>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold">
-                        {adm.role}
-                      </span>
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          adm.isActive ? 'bg-emerald-400' : 'bg-red-400'
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAdmin(adm._id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition ${
+                          adm.isActive
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                            : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
                         }`}
-                        title={adm.isActive ? 'Active' : 'Deactivated'}
-                      />
+                      >
+                        {adm.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAdmin(adm._id, adm.name)}
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition"
+                        title="Delete Admin Account"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))}

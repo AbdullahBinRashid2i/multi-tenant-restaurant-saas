@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Key,
   Shield,
+  Trash2,
 } from 'lucide-react';
 
 export default function RestaurantRidersPage() {
@@ -80,6 +81,21 @@ export default function RestaurantRidersPage() {
       );
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update rider status');
+    }
+  };
+
+  const handleDeleteRider = async (riderId, riderName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete rider "${riderName}"?`)) {
+      return;
+    }
+    setError('');
+    setSuccess('');
+    try {
+      await api.delete(`/users/${riderId}`);
+      setRiders((prev) => prev.filter((r) => r._id !== riderId));
+      setSuccess(`Rider "${riderName}" deleted successfully`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete rider');
     }
   };
 
@@ -260,17 +276,28 @@ export default function RestaurantRidersPage() {
                     </div>
                   </div>
 
-                  {/* Toggle Active status */}
-                  <button
-                    onClick={() => handleToggleRider(rider._id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                      rider.isActive
-                        ? 'bg-slate-800 hover:bg-red-500/10 text-slate-300 hover:text-red-400'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
-                    }`}
-                  >
-                    {rider.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Toggle Active status */}
+                    <button
+                      onClick={() => handleToggleRider(rider._id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        rider.isActive
+                          ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
+                      }`}
+                    >
+                      {rider.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+
+                    {/* Delete Rider */}
+                    <button
+                      onClick={() => handleDeleteRider(rider._id, rider.name)}
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition"
+                      title="Delete Rider Account"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
